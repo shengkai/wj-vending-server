@@ -1,0 +1,16 @@
+﻿<html>
+<head>
+</head>
+<body>
+<h1>串口服务器命令测试</h1>
+<h3>例子1:{"mac_address":"00:00:00:00:00","action":"open","box":1}</h3>
+<form method='post' enctype='multipart/form-data'>
+{% csrf_token %}
+请把串口命令填写到下面文本框：<br>
+<textarea name="txt" cols="100" rows="20" warp="virtual"></textarea>
+<button type='sumbit'>发送</button>
+</form>
+串口返回：<br>
+{{uf}}
+</body>
+</html>

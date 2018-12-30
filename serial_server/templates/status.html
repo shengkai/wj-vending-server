@@ -1,0 +1,13 @@
+<html>
+<head>
+</head>
+<body>
+<h1>串口服务器在线列表</h1>
+<p>当前在线：{{ clients|length }}</p>
+<ul>
+{% for client in clients %}
+    <li>{{ client }}</li>
+{% endfor %}
+</ul>
+</body>
+</html>
