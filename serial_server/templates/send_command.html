@@ -3,12 +3,18 @@
 </head>
 <body>
 <h1>串口服务器命令测试</h1>
-<h3>例子1:{"mac_address":"00:00:00:00:00","action":"open","box":1}</h3>
 <form method='post' enctype='multipart/form-data'>
-{% csrf_token %}
-请把串口命令填写到下面文本框：<br>
-<textarea name="txt" cols="100" rows="20" warp="virtual"></textarea>
-<button type='sumbit'>发送</button>
+请把串口命令填写到下面表格：<br>
+    MAC: <input type="text" name="mac_address" /><br/>
+    Action:
+    <select name="action">
+        <option>open</option>
+        <option>check</option>
+    </select><br/>
+    Box: <input type="number" name="box" /><br/>
+    <textarea name="data" cols="100" rows="10" warp="virtual"></textarea>
+    <br/>
+    <input type='submit' name="submit" value="发送" />
 </form>
 串口返回：<br>
 {{uf}}

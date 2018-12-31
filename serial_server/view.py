@@ -12,32 +12,35 @@ import sys
 @csrf_exempt
 def send_command(req):
     if req.method == 'POST':
+        data = req.POST
+        json_string = json.dumps(req.POST)
+        print(json_string)
         logfile = file("command.log", "a")
-        logfile.write(req.POST['txt'])
+        logfile.write(json_string)
         logfile.write('\n')
         logfile.close()
 
-        json_data = json.loads(req.POST['txt'])
-        secret = json_data['secret'] if 'secret' in json_data else ""
-        action = json_data['action'] if 'action' in json_data else ""
-        mac_address = int(json_data['mac_address'] if 'mac_address' in json_data else 0)
-        box_id = int(json_data['box'] if 'box' in json_data else 0)
-        data = json_data['data'] if 'data' in json_data else ""
+        secret = data['secret'] if 'secret' in data else ""
+        action = data['action'] if 'action' in data else ""
+        mac_address = data['mac_address'] if 'mac_address' in data else ""
+        box_id = int(data['box'] if 'box' in data else 0)
+        extra = data['data'] if 'data' in data else ""
 
         try:
-            command = socket_server.compose_command(action, box_id, data)
+            command = socket_server.compose_command(action, box_id, extra)
             socket_server.clean_received_data(mac_address)
-            print(command.encode('hex'))
             socket_server.send_command(mac_address, command)
-            time.sleep(1)
-
         except Exception as ex:
             print sys.exc_info()
             return render_to_response('send_command.html', {'uf': str(ex)})
 
-        return_data = socket_server.receive_message(mac_address).encode('hex')
+        return_data = socket_server.receive_message(mac_address)
 
-        return HttpResponse(return_data)
+        if return_data is not None and len(return_data) > 0:
+            print('Received: ' + socket_server.byte_humanized(return_data))
+            return HttpResponse('success')
+
+        return HttpResponse('fail')
     else:
         pass
 

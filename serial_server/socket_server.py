@@ -46,7 +46,7 @@ def get_crc(byte_data):
     return chr(crc)
 
 
-def byte_pbyte(data):
+def byte_humanized(data):
     # check if there are multiple bytes
     if len(str(data)) > 1:
         # make list all bytes given
@@ -82,7 +82,7 @@ def listener():
     print('IoT server started...')
 
     while inputs:
-        readable, writable, exceptional = select.select(inputs, outputs, inputs)
+        readable, writable, exceptional = select.select(inputs, outputs, inputs, 5)
         for s in readable:
             if s is iot:
                 conn, client_address = s.accept()
@@ -93,23 +93,21 @@ def listener():
             else:
                 try:
                     data = s.recv(1024)
-                    print(byte_pbyte(data))
-                    if len(data) > 5 and data[0] == '\xf0':
-                        if data[4] == '\xff':
-                            # A readable client socket has data
-                            print(sys.stderr, 'received "%s" from %s' % (data, s.getpeername()))
-                            client_id = ord(data[5])
-                            print('Client id %d is online.' % client_id)
-                            clients[client_id] = s
-                            # send_queues[s] = Queue.Queue()
-                            recv_queues[s] = Queue.Queue()
+                    # print(byte_humanized(data))
+                    if len(data) == 6:
+                        # A readable client socket has data of MAC address
+                        # print(sys.stderr, 'received "%s" from %s' % (data, s.getpeername()))
+                        client_id = data.encode('hex')
+                        print('Client MAC %s is online.' % byte_humanized(data))
+                        clients[client_id] = s
+                        # send_queues[s] = Queue.Queue()
+                        recv_queues[s] = Queue.Queue()
                         # message_queues[s].put(data)
                         # Add output channel for response
                         # if s not in outputs:
-                        #	outputs.append(s)
-                        else:
-                            client_id = data[3]
-                            recv_queues[s].put(data)
+                        #  outputs.append(s)
+                    else:
+                        recv_queues[s].put(data)
                 except Exception as ex:
                     # Interpret empty result as closed connection
                     print(ex)
@@ -188,7 +186,7 @@ def send_command(client_id, command):
         raise Exception("This client is not logged in.")
 
     sock = clients[client_id]
-    print('Sending command: ' + byte_pbyte(command))
+    print('Sending command: ' + byte_humanized(command))
     sock.send(command)
 
 
@@ -200,7 +198,11 @@ def receive_message(client_id):
         raise Exception("This client is not logged in.")
 
     sock = clients[client_id]
-    message = recv_queues[sock].get()
+    try:
+        message = recv_queues[sock].get(True, 2)
+    except Queue.Empty:
+        message = ''
+
     return message
 
 
