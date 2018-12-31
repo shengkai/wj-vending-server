@@ -2,9 +2,7 @@
 import socket
 import threading
 import select
-import struct
-import sys
-import Queue
+import queue
 import time
 
 
@@ -15,22 +13,22 @@ inputs = []
 outputs = []
 
 
-def compose_command(action, box_id, data):
-    cmd = '\x24' + '\x80' + '\x0c'
+def compose_command(action, box_id):
+    cmd = b'\x24' + b'\x80' + b'\x0c'
     if action == 'open':
-        cmd += '\x01'
+        cmd += b'\x01'
     elif action == 'check':
-        cmd += '\x02'
+        cmd += b'\x02'
     else:
         raise Exception("No action.")
 
-    cmd += chr(box_id)
-    cmd += '\xff\xff\x00\x00\x00'
+    cmd += hex(box_id).encode()
+    cmd += b'\xff\xff\x00\x00\x00'
 
     crc_code = get_crc(cmd)
 
     cmd += crc_code
-    cmd += '\x21'
+    cmd += b'\x21'
 
     return cmd
 
@@ -43,32 +41,11 @@ def get_crc(byte_data):
         else:
             crc ^= byte
 
-    return chr(crc)
+    return hex(crc).encode()
 
 
 def byte_humanized(data):
-    # check if there are multiple bytes
-    if len(str(data)) > 1:
-        # make list all bytes given
-        msg = list(data)
-        # mark which item is being converted
-        s = 0
-        for u in msg:
-            # convert byte to ascii, then encode ascii to get byte number
-            u = str(u).encode("hex")
-            # make byte printable by canceling \x
-            u = str(u)
-            # apply coverted byte to byte list
-            msg[s] = u
-            s = s + 1
-        msg = " ".join(msg)
-    else:
-        msg = data
-        # convert byte to ascii, then encode ascii to get byte number
-        msg = str(msg).encode("hex")
-        # make byte printable by canceling \x
-        msg = str(msg)
-    # return printable byte
+    msg = ' '.join('{:02X}'.format(x) for x in bytearray(data))
     return msg
 
 
@@ -88,7 +65,8 @@ def listener():
                 conn, client_address = s.accept()
                 print(str(client_address) + " connected.")
                 conn.setblocking(False)
-                conn.send(compose_command('check', 1, []))
+                cmd = compose_command('check', 1)
+                conn.send(cmd)
                 inputs.append(conn)
             else:
                 try:
@@ -97,11 +75,11 @@ def listener():
                     if len(data) == 6:
                         # A readable client socket has data of MAC address
                         # print(sys.stderr, 'received "%s" from %s' % (data, s.getpeername()))
-                        client_id = data.encode('hex')
+                        client_id = data.hex()
                         print('Client MAC %s is online.' % byte_humanized(data))
                         clients[client_id] = s
                         # send_queues[s] = Queue.Queue()
-                        recv_queues[s] = Queue.Queue()
+                        recv_queues[s] = queue.Queue()
                         # message_queues[s].put(data)
                         # Add output channel for response
                         # if s not in outputs:
@@ -161,9 +139,9 @@ server_thread.start()
 
 def socket_heart():
     while True:
-        print('Live clients: ' + str(clients.keys()))
+        print('Live clients: ' + str(list(clients.keys())))
         for s in clients:
-            clients[s].send('\x00')
+            clients[s].send(b'\x00')
         time.sleep(10)
 
 
@@ -200,7 +178,7 @@ def receive_message(client_id):
     sock = clients[client_id]
     try:
         message = recv_queues[sock].get(True, 2)
-    except Queue.Empty:
+    except queue.Empty:
         message = ''
 
     return message

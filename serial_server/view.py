@@ -5,7 +5,7 @@ from django.views.decorators.csrf import csrf_exempt
 # import serial
 import json
 import time
-import socket_server
+from . import socket_server
 import sys
 
 
@@ -14,8 +14,8 @@ def send_command(req):
     if req.method == 'POST':
         data = req.POST
         json_string = json.dumps(req.POST)
-        print(json_string)
-        logfile = file("command.log", "a")
+        # print(json_string)
+        logfile = open("command.log", "a")
         logfile.write(json_string)
         logfile.write('\n')
         logfile.close()
@@ -27,11 +27,11 @@ def send_command(req):
         extra = data['data'] if 'data' in data else ""
 
         try:
-            command = socket_server.compose_command(action, box_id, extra)
+            command = socket_server.compose_command(action, box_id)
             socket_server.clean_received_data(mac_address)
             socket_server.send_command(mac_address, command)
         except Exception as ex:
-            print sys.exc_info()
+            print(sys.exc_info())
             return render_to_response('send_command.html', {'uf': str(ex)})
 
         return_data = socket_server.receive_message(mac_address)
