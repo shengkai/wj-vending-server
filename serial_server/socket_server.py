@@ -22,7 +22,7 @@ def compose_command(action, box_id):
     else:
         raise Exception("No action.")
 
-    cmd += hex(box_id).encode()
+    cmd += box_id.to_bytes(1, 'big')
     cmd += b'\xff\xff\x00\x00\x00'
 
     crc_code = get_crc(cmd)
@@ -40,8 +40,7 @@ def get_crc(byte_data):
             crc = byte
         else:
             crc ^= byte
-
-    return hex(crc).encode()
+    return crc.to_bytes(1, 'big')
 
 
 def byte_humanized(data):
@@ -75,7 +74,7 @@ def listener():
                     if len(data) == 6:
                         # A readable client socket has data of MAC address
                         # print(sys.stderr, 'received "%s" from %s' % (data, s.getpeername()))
-                        client_id = data.hex()
+                        client_id = ''.join('{:02X}'.format(x) for x in bytearray(data))
                         print('Client MAC %s is online.' % byte_humanized(data))
                         clients[client_id] = s
                         # send_queues[s] = Queue.Queue()

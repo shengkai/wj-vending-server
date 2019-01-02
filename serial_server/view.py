@@ -13,12 +13,7 @@ import sys
 def send_command(req):
     if req.method == 'POST':
         data = req.POST
-        json_string = json.dumps(req.POST)
         # print(json_string)
-        logfile = open("command.log", "a")
-        logfile.write(json_string)
-        logfile.write('\n')
-        logfile.close()
 
         secret = data['secret'] if 'secret' in data else ""
         action = data['action'] if 'action' in data else ""
@@ -29,6 +24,11 @@ def send_command(req):
         try:
             command = socket_server.compose_command(action, box_id)
             socket_server.clean_received_data(mac_address)
+            logfile = open("command.log", "a")
+            logfile.write(
+                'Sending ' + action + ' command to ' + mac_address + ':' + str(box_id)
+                + ' HEX: ' + socket_server.byte_humanized(command) + '\n')
+            logfile.close()
             socket_server.send_command(mac_address, command)
         except Exception as ex:
             print(sys.exc_info())
@@ -36,9 +36,22 @@ def send_command(req):
 
         return_data = socket_server.receive_message(mac_address)
 
-        if return_data is not None and len(return_data) > 0:
-            print('Received: ' + socket_server.byte_humanized(return_data))
-            return HttpResponse('success')
+        if action == 'open':
+            if return_data is not None and len(return_data) > 0:
+                print('Received: ' + socket_server.byte_humanized(return_data))
+                if return_data[3] < 0x05:
+                    return HttpResponse('success')
+
+            return HttpResponse('fail')
+        elif action == 'check':
+            if return_data is not None and len(return_data) > 0:
+                print('Received: ' + socket_server.byte_humanized(return_data))
+                if return_data[3] < 0x05:
+                    return HttpResponse('open')
+                elif return_data[3] >= 0x05:
+                    return HttpResponse('error')
+                else:
+                    return HttpResponse('close')
 
         return HttpResponse('fail')
     else:
