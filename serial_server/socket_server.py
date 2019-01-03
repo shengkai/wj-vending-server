@@ -184,4 +184,4 @@ def receive_message(client_id):
 
 
 def show_clients():
-    return clients.keys()
+    return list(clients.keys())

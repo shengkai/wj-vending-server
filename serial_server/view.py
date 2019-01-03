@@ -40,20 +40,24 @@ def send_command(req):
             if return_data is not None and len(return_data) > 0:
                 print('Received: ' + socket_server.byte_humanized(return_data))
                 if return_data[3] < 0x05:
-                    return HttpResponse('success')
-
-            return HttpResponse('fail')
+                    result = {'result': 'success'}
+                else:
+                    result = {'result': 'fail'}
+            else:
+                result = {'result': 'fail'}
         elif action == 'check':
             if return_data is not None and len(return_data) > 0:
                 print('Received: ' + socket_server.byte_humanized(return_data))
                 if return_data[3] < 0x05:
-                    return HttpResponse('open')
+                    result = {'result': 'open'}
                 elif return_data[3] >= 0x05:
-                    return HttpResponse('error')
+                    result = {'result': 'error'}
                 else:
-                    return HttpResponse('close')
+                    result = {'result': 'close'}
+            else:
+                result = {'result': 'fail'}
 
-        return HttpResponse('fail')
+        return HttpResponse(json.dumps(result))
     else:
         pass
 
@@ -63,4 +67,5 @@ def send_command(req):
 @csrf_exempt
 def show_status(req):
     clients = socket_server.show_clients()
-    return render_to_response('status.html', {'clients': clients})
+    # return render_to_response('status.html', {'clients': clients})
+    return HttpResponse(json.dumps(clients))
